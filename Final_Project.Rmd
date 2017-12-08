@@ -1,0 +1,469 @@
+---
+title: "Final Project"
+author: "Mengqi Zhu & Shuang Wu & Yutian Mu & Dong Yuan"
+date: "November 22nd 2017"
+output: 
+   html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+---
+
+<font size = 3>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      warning = FALSE, 
+                      message = FALSE, 
+                      collapse = TRUE,
+                      fig.width = 6,
+                      fig.asp = .6,
+                      out.width = "90%"
+                      )
+
+
+library(tidyverse)
+library(readr)
+library(janitor)
+library(lubridate)
+library(stringr)
+library(chron)
+library(forcats)
+```
+
+#1. Introduction
+For many students, school bus is the only available method of transportation to and from school. Students without access to a school bus have a much harder time getting to school on time every day. And they are also much safer than passenger vehicles for students. As shown that students are about 50 times more likely to arrive at school alive if they take the bus than if they drive themselves or ride with friends-more than 20 times safer than if they ride with a parent or other adult. Improving the operation condition and safety of school bus has always been an important topic. So we are interested in exploring the operation status of NYC school bus, and predicting the delay duration.
+
+
+The Office of Pupil Transportation(OPT) administers school bus service to New York City schools for students attending both public and non-public schools, and it aims to use the Bus Breakdown and Delay system to inform parents who call with questions regarding bus service. The Bus Breakdown and Delay system collects information from school bus vendors operating out in the field in real time about the occur and inform time, delay duration, breakdown and delay reasons, and other operation information.
+
+
+The initial goal of our project was to find out the operation status of NYC school bus, and to investigate and rank the quality of school bus service provided by different bus vendors. However, it follows a question that we cannot get the data of the total number of school buses each company is operating, so the rank becomes meaningless as we cannot know the risk of breakdown and delay for each company. After further exploring the data, we decide to focus our project on exploratory analyses and anticipation. Within the exploratory analysis, we compare different school bus companies by delay duration, reaction time and work fault.We also compare route services by the odds of notifying and the effect of route planning. Within the anticipation part, we build a model to predict the delay duration. Office of Pupil Transportation would be able to get the expected delay duration with this model and inform the parents who call.
+
+
+
+#2. Data and methods
+
+Data consist of breakdown and delay information of schoolbus in New York during 2015-2016, 2016-2017 and 2017-2018 school years (except July, August and September), including occur time, inform time, delay duration, reason, bus company that provided service, run type, route and boro about breakdown and delay. These real time updated data are stored in Bus_Breakdown_and_Delays.csv, which was downloaded from the NYC Open Data. 
+
+
+We did three main clean steps to prepare data for analysis. The first was to organize the data of delay duration into minutes. As the delay duration was recorded by hand, the data was very unformatted. So we map each form with the corresponding numeric time in minutes. The second step was to clean up company names by extracting common words as the original company name was too long and unformatted. The third step was to format the date and datetime as the oringinal data was unformatted and the class of the data was character.
+
+
+```{r}
+#Read and clean data
+nyc_bus <- 
+  read_csv("./Bus_Breakdown_and_Delays.csv") %>%
+  clean_names() 
+
+#Delay Clean
+nyc_bus_delay <-
+  nyc_bus %>%
+  filter(grepl(pattern = '^[0-9]+', how_long_delayed, perl = TRUE) == TRUE) %>%
+  select(busbreakdown_id,how_long_delayed) %>%
+  mutate(how_long_delayed = tolower(how_long_delayed)) 
+
+nyc_bus_delay_hour <-
+  nyc_bus_delay %>%
+  filter(grepl("h", how_long_delayed, ignore.case = T)== TRUE) %>%
+  mutate(how_long_delayed 
+         =
+           ifelse(grepl("1 hr 30", how_long_delayed)== TRUE,"90",
+                  ifelse(grepl("1 hr 45min", how_long_delayed)== TRUE,"105",
+                         ifelse(grepl("1 hr 30min", how_long_delayed)== TRUE,"90",
+                                ifelse(grepl("1hour", how_long_delayed)== TRUE,"60",
+                                       ifelse(grepl("1 hour", how_long_delayed)== TRUE,"60",
+                                              ifelse(grepl("1 h", how_long_delayed)== TRUE,"60",
+                                                     ifelse(grepl("1h", how_long_delayed)== TRUE,"60",
+                                                            ifelse(grepl("1/2", how_long_delayed)== TRUE,"30",
+                                                                ifelse(grepl("2", how_long_delayed)== TRUE,"120",
+                                                                       ifelse(grepl("4", how_long_delayed)== TRUE,"240","NA")))))))))))
+
+nyc_bus_delay_min <- nyc_bus_delay %>%
+  filter(grepl("h", how_long_delayed, ignore.case = T)== FALSE) %>%
+  mutate(how_long_delayed = substr(how_long_delayed,1,2)) %>%
+  mutate(how_long_delayed = sub(pattern = 'm',replacement = '', how_long_delayed),
+         how_long_delayed = sub(pattern = '/',replacement = '', how_long_delayed),
+         how_long_delayed = sub(pattern = ':',replacement = '', how_long_delayed),
+         how_long_delayed = sub(pattern = 'o',replacement = '', how_long_delayed),
+         how_long_delayed = sub(pattern = '-',replacement = '', how_long_delayed),
+         how_long_delayed = sub(pattern = '02',replacement = '2', how_long_delayed),
+         how_long_delayed = sub(pattern = '07',replacement = '7', how_long_delayed),
+         how_long_delayed = sub(pattern = '00',replacement = '0', how_long_delayed),
+         how_long_delayed = sub(pattern = '08',replacement = '8', how_long_delayed),
+         how_long_delayed = sub(pattern = '01',replacement = '1', how_long_delayed),
+         how_long_delayed = sub(pattern = '\\.',replacement = '', how_long_delayed)) %>%
+  mutate(how_long_delayed = str_trim(how_long_delayed))
+
+nyc_bus_delay <- rbind(nyc_bus_delay_hour,nyc_bus_delay_min)
+
+nyc_bus <- nyc_bus %>% 
+  select(- how_long_delayed) 
+nyc_bus <- merge(nyc_bus,nyc_bus_delay, by.x = "busbreakdown_id", by.y = "busbreakdown_id", all = TRUE) %>%
+  mutate(how_long_delayed = as.numeric(how_long_delayed))
+
+#Company name clean
+nyc_bus <-
+  nyc_bus %>%
+  filter(!is.na(boro)) %>%  #filter NAs
+  mutate(bus_company_name = tolower(bus_company_name),
+         company_name = str_sub(bus_company_name,1,5)) %>%   #find the unique company name
+  select(school_year:bus_company_name,company_name,everything())
+```
+
+
+#3. Results
+
+##3.1 Description
+For this part, we want to find out some basic description of the variables we are interested in, including breakdown and delay distribution during the day, main reasons for school bus breakdowns and delays and average delay duration by reason.
+
+### 3.1.1 Breakdown and Delay Distribution during the day 
+```{r}
+#Delay count over time by boros
+nyc_bus %>%
+  separate(occurred_on, into = c("date", "time", "am_pm"), sep = " ") %>%
+  mutate(datetime = format(strptime(str_c(time, am_pm, sep = " "), "%I:%M:%S %p"), "%H:%M:%S")) %>%
+  count(datetime, boro) %>%
+  rename(delay_count = n) %>%
+  ggplot(aes(x = datetime, y = delay_count, fill = boro, color = boro)) +
+  geom_point() +
+  geom_smooth() +
+  ggtitle("Breakdown and Delay Distribution during the day") + 
+  theme(text = element_text(size = 10),
+        axis.text.x = element_text(angle = 90, hjust = 1),
+        plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(breaks = c("00:00:00", "06:00:00", "12:00:00", "18:00:00"))
+```
+
+We found that during the day, the school bus delay occurs mainly focucs on 7:00-8:00am and 2:00-3:00pm, which are the commonsensible rush hours. The delay happens most frequently in Brooklyn and Bronx, and happens least frequently in Staten Island and Westchester, indicating the traffic condition of these boros.
+
+###3.1.2 Reasons of breakdown and delay
+We want to find out the main reasons for school bus breakdowns and delays.
+```{r reason_breakdown}
+# Main reasons for school bus breakdowns and delays
+reason_count_break = nyc_bus %>%
+  filter(breakdown_or_running_late == "Breakdown") %>%
+  group_by(reason) %>%
+  filter(!is.na(reason))%>%
+  summarize(n_reason = n()) %>%
+  ungroup() %>%
+  arrange(n_reason)
+
+
+reason_count_break <- reason_count_break %>%
+  mutate(reason = fct_reorder(reason, n_reason)) %>%
+  ggplot(aes(x = reason, y = n_reason)) +
+  geom_bar(stat = "identity", fill = "blue", alpha = .6) +
+  labs(title = "Reasons for Breakdown",y = "count") +
+  theme(text = element_text(size = 10),
+        plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(angle = 90, hjust = 1))
+
+reason_count_delay = nyc_bus %>%
+  filter(breakdown_or_running_late == "Running Late") %>%
+  group_by(reason) %>%
+  filter(!is.na(reason))%>%
+  summarize(n_reason = n()) %>%
+  ungroup() %>%
+  arrange(n_reason)
+
+
+reason_count_delay <- reason_count_delay %>%
+  mutate(reason = fct_reorder(reason, n_reason)) %>%
+  ggplot(aes(x = reason, y = n_reason)) +
+  geom_bar(stat = "identity", fill = "blue", alpha = .6) +
+  labs(title = "Reasons for Running Late",y = "count") +
+  theme(text = element_text(size = 10),
+        plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(angle = 90, hjust = 1))
+gridExtra::grid.arrange(reason_count_break,reason_count_delay,ncol=2)
+```
+
+We found that the most commom known reasons for breakdown are mechanical problem, won't start and flat tire. We suggest the companies checking the condition of schoolbuses regularly. The most commom known reason for delay is heavy traffic.
+
+###3.1.3 Average delay duration by reason
+We want to find out what kind of problem tends to have longer delay duration.
+```{r}
+#Average delay duration by reason
+nyc_bus %>%
+  filter(!is.na(reason),
+         !is.na(how_long_delayed)) %>%
+  group_by(reason) %>%
+  summarise(avg_time = mean(how_long_delayed)) %>%
+  ggplot(mapping = aes(x = reason, y = avg_time, fill = reason)) + 
+  geom_bar(stat= 'identity') +
+  ggtitle("Average delay duration by reason") +
+  labs(x = "Reason of delay", y = "Avergae delay duration") +
+  theme(text = element_text(size = 10),
+        axis.text.x = element_text(angle = 90, hjust = 1),
+        plot.title = element_text(hjust = 0.5))
+```
+
+We can see the average delay duration by different reasons from the plot. Accident and mechanical problem tend to cause the longest delay duration while delayed by school and heavy traffic tend to have the shortest delay duration.
+
+## 3.2 Exploratory Analysis
+### 3.2.1 Comparison of different companies
+For this part, we want to make comparisons among different companies in terms of delay duration, reaction time of notifying and work fault of notifying.
+
+#### 3.2.1.1 Distribution of delay duration of each company
+```{r}
+#distribution of delay duration for each company
+company_level <- 
+  nyc_bus %>%
+  filter(!is.na(how_long_delayed)) %>%
+  group_by(company_name) %>%
+  summarise(mean_duration = mean(how_long_delayed, na.rm = T)) %>%
+  arrange(desc(mean_duration)) %>%
+  pull(company_name)
+
+
+nyc_bus %>%
+  mutate(company_name = forcats::fct_relevel(company_name, company_level)) %>%
+  filter(!is.na(how_long_delayed)) %>%
+  ggplot(aes(x = company_name, y = how_long_delayed)) + 
+  geom_boxplot(aes(fill = company_name), color = "blue", alpha = .5, outlier.size = 0.7) + 
+  stat_summary(fun.y = median, geom = "point", color = "blue") +
+  theme(axis.text.x = element_text(angle = 90),
+        legend.position = "none", 
+        text = element_text(size = 10),
+        plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Boxplot of delay duration for each company")
+```
+
+####3.2.1.2 Reaction time of notifying of each company
+```{r}
+#reaction time of notifying of each company
+nyc_bus_reaction <- 
+  nyc_bus %>%
+  separate(occurred_on, into = c("occur_date", "occur_time", "occur_am_pm"), sep = " ") %>%
+  separate(informed_on, into = c("inform_date", "inform_time", "inform_am_pm"), sep = " ") %>%
+  mutate(occur_datetime = as.POSIXct(strptime(str_c(occur_time, occur_am_pm, sep = " "), "%I:%M:%S %p")),
+         inform_datetime = as.POSIXct(strptime(str_c(inform_time, inform_am_pm, sep = " "), "%I:%M:%S %p")),
+         reaction_time = inform_datetime - occur_datetime,
+         is_same_time = as.Date(inform_date, format = "%m/%d/%Y") - as.Date(occur_date, format = "%m/%d/%Y"),
+         occur_time = str_c(occur_date, occur_time, occur_am_pm, sep = " "),
+         inform_time = str_c(inform_date, inform_time, inform_am_pm, sep = " "))
+
+#the mean reaction time among the company occurred date and informed date are the same
+nyc_bus_reaction %>%
+  select(company_name, occur_time, inform_time, reaction_time, is_same_time) %>%
+  filter(is_same_time == 0) %>%
+  group_by(company_name) %>%
+  summarise(mean_reaction = mean(reaction_time)) %>%
+  arrange(desc(mean_reaction)) %>%
+  head(10) %>%
+  knitr::kable() 
+```
+
+Reaction time is the time period between inform time and occur time. We find that "FORTUNA BUS COMPANY" has the longest reaction time of three and a half hours, following are "R & C TRANSIT, INC.", "SMART PICK" and "PENNY TRANSPORTATION"(2 hours and 1 hour, respectively).
+
+#### 3.2.1.3 Work fault
+We define two kinds of situations as work faults: (1) the reaction time is negative, which could be caused by falsely recorded; (2)the reaction time is more than one day, which means the company failed to notify within the same day the delay or breakdown happened. There are 62 work faults in total, which is shown by the table below.
+
+```{r}
+#inspect the cases that the occurred date and informed date are not the same
+nyc_bus_reaction %>%
+  select(company_name, occur_time, inform_time, reaction_time, is_same_time) %>%
+  filter(is_same_time != 0) %>%
+  arrange(is_same_time) %>%
+  head(10) %>%
+  knitr::kable()
+```
+
+Then we count the total number of work faults for each company and the percantage by dividing it with the total number of delay for each company. 
+
+```{r}
+work_fault_count <- 
+  nyc_bus_reaction %>%
+  select(company_name, occur_time, inform_time, reaction_time, is_same_time) %>%
+  filter(is_same_time != 0) %>%
+  group_by(company_name) %>%
+  summarise(num_work_fault = n()) %>%
+  arrange(desc(num_work_fault))
+company_delay_count <-
+  nyc_bus_reaction %>%
+  count(company_name) %>%
+  rename(num_delay_company = n)
+left_join(work_fault_count, company_delay_count , by = "company_name") %>%
+  mutate(fault_percent = num_work_fault/num_delay_company) %>%
+  arrange(desc(fault_percent)) %>%
+  head(10) %>%
+  knitr::kable()
+```
+
+We can see from the table above that generally the ratio of work faults is quite small. The company "IC BUS INC. " has the largest ratio of work faults, followed by "GRANDPA`S BUS CO., INC." and "ACME BUS CORP. ".
+
+### 3.2.2 Comparison of route services
+There are two types of  route service, one is for school-age and the other is for Pre-K/EI population. These two busing types have very different contract terms. OPT does not perform route planning for Pre-K service and doesn't assign route numbers. For this part, we want to compare the differences of the two route services.
+
+#### 3.2.2.1 Odds of notifying differed by route services
+```{r}
+  nyc_bus %>% 
+  group_by(school_age_or_prek,has_contractor_notified_schools,has_contractor_notified_parents) %>%
+  count() %>% 
+  ungroup() %>% 
+  mutate(notify = ifelse(has_contractor_notified_parents == "Yes" & has_contractor_notified_schools == "Yes","both","not_both")) %>% 
+  select(school_age_or_prek,notify,n) %>% 
+  group_by(school_age_or_prek,notify) %>% 
+  summarise(count = sum(n)) %>% 
+  spread(notify,count) %>% 
+  mutate(odds = both/not_both) %>%
+  knitr::kable()
+```
+
+We can see from the table that the odds of notifying is 13.58 and 2.32 for Pre-K and School-Age, respectively. The route service for Pre-K has a much higher odds of notifying.
+
+####3.2.2.2 Effect of route planning
+We want to find out whether different service type (having route planned by OPT or not) is associated with the time of delay.
+
+It is a funny thing that while heavy traffic is NO.1 reason for delay, its average delay duartion is quite short. Then we are interested in which reason has the longest cumulative delay reason.
+```{r}
+nyc_bus %>%
+  filter(!is.na(reason),
+         !is.na(how_long_delayed)) %>%
+  group_by(reason) %>%
+  summarise(avg_time = mean(how_long_delayed), n_reason = n()) %>%
+  mutate(cumulative = avg_time * n_reason) %>%
+  arrange(cumulative) %>%
+  select(-avg_time, -n_reason) %>%
+  knitr::kable()
+```
+
+Then we can see from the table that heavy traffic has the longest cumulative delay duration. 
+
+```{r}
+#Effect of route planning 
+nyc_bus %>%
+  filter(breakdown_or_running_late == "Running Late") %>%
+  ggplot(aes(x = school_age_or_prek, y = how_long_delayed, fill = school_age_or_prek)) +
+  geom_boxplot() +
+  ggtitle("Effect of route planning") +
+  labs(x = "Route servive", y = "Delay duration because of running late") +
+  theme(text = element_text(size = 10),
+        axis.text.x = element_text(angle = 90, hjust = 1),
+        plot.title = element_text(hjust = 0.5))
+```
+
+We can see from the plot above that the route service for School-Age population has longer average delay duration because of running late than Pre-K. Besides, the distribution of delay duration of the route service for School-Age population has much more outliers. This means route planning has a negative effect on the school bus arriving in time. Given that heavy traffic is the NO.1 reason for delay and has the longest cumulative delay duration(has been disscussed above), we spectulate that this result is due to the inflexibility of route planning. School buses serving for School-Age can not change routes when running into heavy traffic, so they tend to delay longer than those for Pre-K. 
+
+## 3.3 Anticipation
+
+For this part, we'd like to fit a logistic model to find related variables that influence the delay time and further predict the delay time according to covariates we have. In order to fit a logistic regression, we first need to classify the dependent variable, which is delay time, as catrgorical variable. We define the length of delay time as "short","medium" and "long" according to 33 and 66 quantiles. Moreover, since some companies only appear once or twice, we'd like to exclude them because it may only get into test dataset but not training dataset which result in error.
+
+```{r}
+#make classification of delay time according to quantiles
+cutoff <- quantile(nyc_bus$how_long_delayed, c(0.33,0.67), na.rm = TRUE)
+#initailly select covariates for logistics model
+nyc_bus_logit <- 
+  nyc_bus %>% 
+  filter(!is.na(how_long_delayed)) %>% 
+  mutate(delay_class = ifelse(how_long_delayed < cutoff[[1]], "short", ifelse(how_long_delayed > cutoff[[2]],"long","medium"))) %>%
+  select(-c(bus_no, route_number, schools_serviced, created_on, bus_company_name, busbreakdown_id, 
+            has_contractor_notified_schools, has_contractor_notified_parents, have_you_alerted_opt, 
+            informed_on, incident_number, last_updated_on, how_long_delayed, run_type)) %>%
+  separate(occurred_on, into = c("occur_date", "occur_time", "occur_am_pm"), sep = " ") %>%
+  mutate(occur_hour = hour(as.POSIXct(strptime(str_c(occur_time, occur_am_pm, sep = " "), "%I:%M:%S %p")))) %>%
+  select(-c(occur_date, occur_time, occur_am_pm)) %>%
+  filter(company_name != "fortu",
+         company_name != "r & c",
+         company_name != "gvc"
+         ) %>% 
+  na.omit()
+```
+
+For further validation test, we create training and testing sample from original dataset as 7:3 that is proportional to different levels. We rerun this process 10 times, which will create 10 different training datasets for modeling.
+
+```{r}
+#create training and testing samples from original dataset as 7:3 that is proportional to delay class
+delay_short <- nyc_bus_logit %>% 
+  filter(delay_class == "short")
+
+delay_medium <- nyc_bus_logit %>% 
+  filter(delay_class == "medium")
+
+delay_long = nyc_bus_logit %>% 
+  filter(delay_class == "long")
+
+#produce random sample
+set.seed(2017)
+train_short_row = rerun(10,sample(1:nrow(delay_short), 0.7*nrow(delay_short)))
+train_medium_row = rerun(10,sample(1:nrow(delay_medium), 0.7*nrow(delay_medium)))
+train_long_row = rerun(10,sample(1:nrow(delay_long), 0.7*nrow(delay_long)))
+
+training = map(1:10, ~rbind(delay_short[train_short_row[[.]],],
+                   delay_medium[train_medium_row[[.]],],
+                   delay_long[train_long_row[[.]],]) )
+
+test = map(1:10, ~rbind(delay_short[-train_short_row[[.]],],
+                            delay_medium[-train_medium_row[[.]],],
+                            delay_long[-train_long_row[[.]],]) )
+
+```
+
+Finally we build the logistic model based on 9 variables. The basic formula for a binary outcome logistics regression model is $ln(\frac{P}{1-P})=\beta_0+\sum_{i=1}^{p-1}\beta_iX_i$ where $P$ is the probability that $Y=1$. In our cases, we are doing a multi-classification problem, which means that the outcome is not a binary one. But logistics regression model can still use "one versus other" method to solve this problem.
+
+Since we have too many categorical variables, each has many different levels(especially company has over 50 levels), we cannot present statistical result neatly. But if you care the effect of specific variable, we can still find that in the model summary. In this analysis, we are more curious about the prediction effects. Therefore we construct a function to return the prediction result, which is actually a probability of successful prediction on test dataset. 
+
+```{r}
+library(nnet)
+#The function which return a prediction probability for one logistic regression
+logistic_probs = function(i){
+  logit_reg <- multinom(delay_class ~ ., data = training[[i]])
+  #step(logit_reg)
+  #summary(logit_reg)
+  test_pre <- 
+    as.tibble(predict(logit_reg, newdata = test[[i]], "probs")) %>%
+    mutate(predict_class = apply(., 1, which.is.max),
+           predict_class = recode(predict_class, "1" = "long", "2" = "medium", "3" = "short"))
+  #accuracy
+  
+  accuracy = 
+    bind_cols(test[[i]], test_pre) %>%
+    mutate(accuracy = if_else(predict_class == delay_class, 1, 0)) %>%
+    pull(accuracy) %>%
+    sum()/nrow(test[[i]])
+  
+  tibble(i, accuracy)
+}
+
+#we turn to the model based on the first training dataset
+nyc_bus_logit_model <- multinom(delay_class ~ ., data = training[[1]])
+#predict the class in the test dataset
+logit_test_pre <- 
+  as.tibble(predict(nyc_bus_logit_model, newdata = test, "probs")) %>%
+  mutate(predict_class = apply(., 1, which.is.max),
+         predict_class = recode(predict_class, "1" = "long", "2" = "medium", "3" = "short"))
+#show predict result(10 obseractions)
+logit_test_pre %>% head(10) %>%  knitr::kable()
+```
+
+The predicted probability of each class of the first 10 observations is showed above. Ad we make our final predicted class choosing the highest probability in our prediction. This result is the basic output of our logistics regression model prediction. In the following part, we will check the accuracy of our predicted model.
+
+```{r}
+#make the final tibble with results of prediction accuracy of 10 logistics regression based on our 10 samples
+map_df(1:10,~logistic_probs(.)) %>% rename(sample_id = i) %>% knitr::kable()
+```
+
+The precidted accuracies of 10 samples we created is showed above. We can see the the prediction accuracy is around 62%. So the prediction accuracy of our logistics regression model is approximate **62%**. This accuracy is acceptable since it is obviously greater than 33.3% which is the expected accuracy without any information.
+
+```{r}
+#show the predict result graphically
+library(plotly)
+bind_cols(test[[1]], logit_test_pre) %>%
+  select(long, medium, short, predict_class, delay_class) %>%
+  plot_ly(x = ~short, y = ~medium, z = ~long, alpha = 0.75, 
+          color = ~delay_class, marker = list(size = 3), colors = c('brown', 'orchid4', 'seagreen')) %>%
+  add_markers() %>%
+  layout(scene = list(xaxis = list(title = 'probability of short'),
+                      yaxis = list(title = 'probability of medium'),
+                      zaxis = list(title = 'probability of long')))
+```
+
+In the interactive 3D scatter plot, we can see our predicted probability of three class in our test. That is, we can see the predicted probability of long delay, predicted probability of mediium delay, predicted probability of short delay of each observation in our test dataset.
+
+# 4. Discussion
+In order to compare among different companies, our initial goal was to rank the quality of school bus service provided by different bus vendors. However, we cannot get the data of the total number of school buses each company is operating, so the rank becomes meaningless as we cannot know the risk of breakdown and delay for each company. Therefore, we analyze the distribution of delay duration of each company, the reaction time of notifying of each company, and the work faults instead. The result can be used to provide an overview of the operation condition of school bus serviced by different companies, and for those with long delay duration and long reaction time, reasonable planning of running route and improvement of reaction efficiency are needed.
+
+Secondly, for the route services, we compared the odds of notifying of two route services and the effect of route planning. Our result shows that Pre-K has a much higher odds of notifying and a shorter average delay duration, as well as more high delay duration outliers. Since we already know that the route planning for Pre-K is not assigned but fixed by OPT, which indicates the flexibility of operation. The result shows that route planning has a negative effect on the school bus arriving in time, and can be used to suggest OPT assign the routes for School-Age more flexible.
+
+Finally, the logistic regression model shows a pretty good predction. This means that we can use this model to predict the approximate interval of delay time with the variables in the model, which has been divided into 3 levels: short, medium, long. However, the limitation of this model is that we cannot analysis the parameters estimate results directly due to too many levels in categorical variables, which is difficult for us to interpret. However, we can still only look at some specific variables, for example, heavy traffic has highest odds of short or medium against long. 

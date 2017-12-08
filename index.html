@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+
+
+<title>Operation Status Analysis and Delay Prediction of NYC School Bus</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-4.5.0/css/font-awesome.min.css" rel="stylesheet" />
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 60px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+
+.section h2 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h3 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h4 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h5 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h6 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Final Project</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="nyc_bus_dashboard.html">Visualization</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="Final_Project.html">Report</a>
+</li>
+<li>
+  <a href="https://github.com/WendyThe13th/final-project">
+    <span class="fa fa-github fa-lg"></span>
+     
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Operation Status Analysis and Delay Prediction of NYC School Bus</h1>
+
+</div>
+
+
+<div id="overview-of-the-project" class="section level1">
+<h1>Overview of the project</h1>
+<p>For many students, school bus is the only available method of transportation to and from school. Improving the operation condition and safety of school bus has always been an important topic.</p>
+<p>The Office of Pupil Transportation(OPT) administers school bus service to New York City schools for students attending both public and non-public schools, and it aims to use the Bus Breakdown and Delay system to inform parents who call with questions regarding bus service. The Bus Breakdown and Delay system collects information from school bus vendors operating out in the field in real time about the occur and inform time, delay duration, breakdown and delay reasons, and other operation information.</p>
+<p>Using the data collected by the Bus Breakdown and Delay System of OPT, our project focuses on exploratory analyses and anticipation. Within the exploratory analysis, we compare different school bus companies by delay duration, reaction time and work fault. We also compare route services by the odds of notifying and the effect of route planning. Within the anticipation part, we build a model to predict the delay duration. Office of Pupil Transportation would be able to get the expected delay duration with this model and inform the parents who call.</p>
+</div>
+<div id="data" class="section level1">
+<h1>Data</h1>
+<p>Our data consist of breakdown and delay information of school buses in New York during 2015-2016, 2016-2017 and 2017-2018 school years (except July, August and September), including 168462 observations of 20 variables about the occur and inform time, delay duration, breakdown and delay reasons, and other operation information.</p>
+<p>It is real time updated and can be downloaded from the NYC Open Data.</p>
+<p>Find our data <a href="Bus_Breakdown_and_Delays.csv">here</a>.</p>
+</div>
+<div id="appraoches" class="section level1">
+<h1>Appraoches</h1>
+<ul>
+<li><p>Clean and prepare the data for further analysis by string processing and data type converting</p></li>
+<li><p>Describe the data according to time, reasons, companies and other categorical variables we are interested in, visualized by barplots, scatter plots and tables</p></li>
+<li><p>Build up and validate a logistics regression model to predict the range of delay duration based on the predictors we select</p></li>
+</ul>
+</div>
+<div id="visualizations" class="section level1">
+<h1>Visualizations</h1>
+<ul>
+<li>Our plotly dashboard is <a href="nyc_bus_dashboard.html">here</a></li>
+</ul>
+</div>
+<div id="results" class="section level1">
+<h1>Results</h1>
+<ul>
+<li><p>The occurence of school bus delays mainly centers around <em>7:00-8:00am</em> and <em>2:00-3:00pm</em>, which are the commonsensible rush hours.</p></li>
+<li><p>The boros which have the most frequent delays are <em>Brooklyn</em> and <em>Bronx</em>.The boros which have the least frequent delays are <em>Staten Island</em> and <em>Westchester</em>. This result indicates the traffic condition of these boros.</p></li>
+<li><p>The most common reasons for breakdown are <em>mechanical problem</em>, <em>won’t start</em> and <em>flat tire</em>. The most common reason for delay is <em>heavy traffic</em>.</p></li>
+<li><p><em>Accident</em> and <em>mechanical problem</em> tend to cause the longest delay duration while <em>delayed by school</em> and <em>heavy traffic</em> tend to have the shortest delay duration.</p></li>
+<li><p><em>“FORTUNA BUS COMPANY”</em> has the longest reaction time of three and a half hours, followed by <em>“R &amp; C TRANSIT, INC.”</em>, <em>“SMART PICK”</em> and <em>“PENNY TRANSPORTATION”</em>.</p></li>
+<li><p>The ratio of work faults(reaction time is negative or more than one day) is quite small generally. The company <em>“IC BUS INC.”</em> has the largest ratio of work faults, followed by <em>“GRANDPA`S BUS CO., INC.”</em> and <em>“ACME BUS CORP.”</em>.</p></li>
+<li><p>The route service for Pre-K has a much higher odds of notifying and shorter average delay duration because of running late compared to School-Age. Route planning has a negative effect on the school bus arriving in time because of inflexibility.</p></li>
+<li><p>In our logistics regression model, we can predict the range of duration of delay based on the predictors we choose. Our model has prediction accuracy of apporximately 62%.</p></li>
+</ul>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
