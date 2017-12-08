@@ -20,8 +20,8 @@
 <script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
-<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
-<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/highlightjs-1.1/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-1.1/highlight.js"></script>
 <link href="site_libs/font-awesome-4.5.0/css/font-awesome.min.css" rel="stylesheet" />
 
 <style type="text/css">code{white-space: pre;}</style>
@@ -31,12 +31,10 @@
   }
 </style>
 <script type="text/javascript">
-if (window.hljs) {
-  hljs.configure({languages: []});
-  hljs.initHighlightingOnLoad();
-  if (document.readyState && document.readyState === "complete") {
-    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
-  }
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
 }
 </script>
 
@@ -212,19 +210,29 @@ $(document).ready(function () {
 </div>
 
 
-<p>This webpage shows some other information of this project. This is a final project of data science class, 2017 Fall. The group members are:</p>
+<p><br></p>
+<div id="about-us" class="section level1">
+<h1>About us</h1>
+<p>We are Columbia University students. This website presents a final project for our course <em>Data Science</em> of 2017 Fall.</p>
+<p><strong>Instructor:</strong></p>
+<ul>
+<li><a href="http://jeffgoldsmith.com/">Jeff Goldsmith</a></li>
+</ul>
+<p><strong>Group Member:</strong></p>
 <ul>
 <li><p>Shuang Wu (uni:sw3236)</p></li>
 <li><p>Dong Yuan (uni:dy2360)</p></li>
 <li><p>Mengqi Zhu (uni:mz2662)</p></li>
 <li><p>Yutian Mu (uni:ym2649)</p></li>
 </ul>
-<div id="other-materials" class="section level1">
-<h1>Other Materials</h1>
+<p><br></p>
+</div>
+<div id="other-materials-about-the-project" class="section level1">
+<h1>Other Materials about the project</h1>
 <ul>
-<li><p>The background and more details of the dataset is in <a href="https://data.cityofnewyork.us/Transportation/Bus-Breakdown-and-Delays/ez4e-fazm">here</a></p></li>
+<li><p>The background and more details of the dataset is <a href="https://data.cityofnewyork.us/Transportation/Bus-Breakdown-and-Delays/ez4e-fazm">here</a></p></li>
 <li><p>The data we used is a csv file that can be found <a href="Bus_Breakdown_and_Delays.csv">here</a></p></li>
-<li><p>The two minutes screencast for this group project is in here</p></li>
+<li><p>The two minutes screencast for this group project is here</p></li>
 </ul>
 </div>
 

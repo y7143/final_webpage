@@ -1,8 +1,16 @@
 ---
 title: "About the project"
 ---
+<br>
 
-This webpage shows some other information of this project. This is a final project of data science class, 2017 Fall. The group members are:
+#About us#
+We are Columbia University students. This website presents a final project for our course *Data Science* of 2017 Fall. 
+
+**Instructor:**
+
+* [Jeff Goldsmith](http://jeffgoldsmith.com/)
+
+**Group Member:**
 
 * Shuang Wu (uni:sw3236)
 
@@ -12,9 +20,12 @@ This webpage shows some other information of this project. This is a final proje
 
 * Yutian Mu (uni:ym2649)
 
-#Other Materials#
-* The background and more details of the dataset is in [here](https://data.cityofnewyork.us/Transportation/Bus-Breakdown-and-Delays/ez4e-fazm)
+<br>
+
+
+#Other Materials about the project#
+* The background and more details of the dataset is  [here](https://data.cityofnewyork.us/Transportation/Bus-Breakdown-and-Delays/ez4e-fazm)
 
 * The data we used is a csv file that can be found [here](Bus_Breakdown_and_Delays.csv)
 
-* The two minutes screencast for this group project is in here
+* The two minutes screencast for this group project is  here
