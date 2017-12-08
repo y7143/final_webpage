@@ -3,6 +3,8 @@ title: "Operation Status Analysis and Delay Prediction of NYC School Bus "
 ---
 
 
+<br>
+
 
 # Overview of the project 
 
@@ -12,16 +14,18 @@ The Office of Pupil Transportation(OPT) administers school bus service to New Yo
 
 Using the data collected by the Bus Breakdown and Delay System of OPT, our project focuses on exploratory analyses and anticipation. Within the exploratory analysis, we compare different school bus companies by delay duration, reaction time and work fault. We also compare route services by the odds of notifying and the effect of route planning. Within the anticipation part, we build a model to predict the delay duration. Office of Pupil Transportation would be able to get the expected delay duration with this model and inform the parents who call.
 
+<br>
 
 
 # Data
 
-Our data consist of breakdown and delay information of school buses in New York during 2015-2016, 2016-2017 and 2017-2018 school years (except July, August and September), including 168462 observations of 20 variables about the occur and inform time, delay duration, breakdown and delay reasons, and other operation information. 
 
-It is real time updated and can be downloaded from the NYC Open Data.
+Our dataset is a real- time updated dataset downloaded from [NYC Open Data](https://opendata.cityofnewyork.us/). It consists of breakdown and delay information of school buses in New York during 2015-2016, 2016-2017 and 2017-2018 school years (except July, August and September), including 168462 observations of 20 variables about the occur and inform time, delay duration, breakdown and delay reasons, and other operation information. 
+
 
 Find our data [here](Bus_Breakdown_and_Delays.csv).
 
+<br>
 
 
 # Appraoches
@@ -32,11 +36,13 @@ Find our data [here](Bus_Breakdown_and_Delays.csv).
 
 * Build up and validate a logistics regression model to predict the range of delay duration based on the predictors we select
 
+<br>
 
 # Visualizations
 
 * Our plotly dashboard is [here](nyc_bus_dashboard.html)
 
+<br>
 
 # Results
 
