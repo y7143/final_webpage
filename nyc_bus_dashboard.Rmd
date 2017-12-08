@@ -1,0 +1,154 @@
+---
+output: 
+flexdashboard::flex_dashboard:
+    source_code: embed
+    orientation: columns
+    theme: journal
+    vertical_layout: fill
+    navbar:
+      - { title: "Home", href: "https://y7143.github.io/final_webpage/", align: right }
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(janitor)
+library(stringr)
+library(forcats)
+library(viridis)
+library(plotly)
+library(flexdashboard)
+```
+
+```{r, include = FALSE}
+#Read and clean data
+nyc_bus <- 
+  read_csv("./Bus_Breakdown_and_Delays.csv") %>%
+  clean_names() 
+
+#Delay Clean
+nyc_bus_delay <-
+  nyc_bus %>%
+  filter(grepl(pattern = '^[0-9]+', how_long_delayed, perl = TRUE) == TRUE) %>%
+  select(busbreakdown_id,how_long_delayed) %>%
+  mutate(how_long_delayed = tolower(how_long_delayed)) 
+
+nyc_bus_delay_hour <-
+  nyc_bus_delay %>%
+  filter(grepl("h", how_long_delayed, ignore.case = T)== TRUE) %>%
+  mutate(how_long_delayed 
+         =
+           ifelse(grepl("1 hr 30", how_long_delayed)== TRUE,"90",
+                  ifelse(grepl("1 hr 45min", how_long_delayed)== TRUE,"105",
+                         ifelse(grepl("1 hr 30min", how_long_delayed)== TRUE,"90",
+                                ifelse(grepl("1hour", how_long_delayed)== TRUE,"60",
+                                       ifelse(grepl("1 hour", how_long_delayed)== TRUE,"60",
+                                              ifelse(grepl("1 h", how_long_delayed)== TRUE,"60",
+                                                     ifelse(grepl("1h", how_long_delayed)== TRUE,"60",
+                                                            ifelse(grepl("1/2", how_long_delayed)== TRUE,"30",
+                                                                ifelse(grepl("2", how_long_delayed)== TRUE,"120",
+                                                                       ifelse(grepl("4", how_long_delayed)== TRUE,"240","NA")))))))))))
+
+nyc_bus_delay_min <- nyc_bus_delay %>%
+  filter(grepl("h", how_long_delayed, ignore.case = T)== FALSE) %>%
+  mutate(how_long_delayed = substr(how_long_delayed,1,2)) %>%
+  mutate(how_long_delayed = sub(pattern = 'm',replacement = '', how_long_delayed),
+         how_long_delayed = sub(pattern = '/',replacement = '', how_long_delayed),
+         how_long_delayed = sub(pattern = ':',replacement = '', how_long_delayed),
+         how_long_delayed = sub(pattern = 'o',replacement = '', how_long_delayed),
+         how_long_delayed = sub(pattern = '-',replacement = '', how_long_delayed),
+         how_long_delayed = sub(pattern = '02',replacement = '2', how_long_delayed),
+         how_long_delayed = sub(pattern = '07',replacement = '7', how_long_delayed),
+         how_long_delayed = sub(pattern = '00',replacement = '0', how_long_delayed),
+         how_long_delayed = sub(pattern = '08',replacement = '8', how_long_delayed),
+         how_long_delayed = sub(pattern = '01',replacement = '1', how_long_delayed),
+         how_long_delayed = sub(pattern = '\\.',replacement = '', how_long_delayed)) %>%
+  mutate(how_long_delayed = str_trim(how_long_delayed))
+
+nyc_bus_delay <- rbind(nyc_bus_delay_hour,nyc_bus_delay_min)
+
+nyc_bus <- nyc_bus %>% 
+  select(- how_long_delayed) 
+nyc_bus <- merge(nyc_bus,nyc_bus_delay, by.x = "busbreakdown_id", by.y = "busbreakdown_id", all = TRUE) %>%
+  mutate(how_long_delayed = as.numeric(how_long_delayed))
+
+#Company name clean
+nyc_bus <-
+  nyc_bus %>%
+  filter(!is.na(boro)) %>%  #filter NAs
+  mutate(bus_company_name = tolower(bus_company_name),
+         company_name = str_sub(bus_company_name,1,5)) %>%   #find the unique company name
+  select(school_year:bus_company_name,company_name,everything())
+```
+
+Dashboard {.tabset .tabset-fade}
+-----------------------------------------------------------------------
+
+### Breakdwon and delay count over time
+
+```{r, echo=FALSE}
+#Delay count over time by boros
+plotly_over_time <-
+  nyc_bus %>%
+  separate(occurred_on, into = c("date", "time", "am_pm"), sep = " ") %>%
+  mutate(datetime = format(strptime(str_c(time, am_pm, sep = " "), "%I:%M:%S %p"), "%H:%M:%S")) %>%
+  count(datetime, boro) %>%
+  rename(delay_count = n) %>%
+  ggplot(aes(x = datetime, y = delay_count, fill = boro, color = boro)) +
+  geom_point() +
+  geom_smooth() +
+  ggtitle("Breakdown and Delay Distribution during the day") + 
+  theme(text = element_text(size = 10),
+        axis.text.x = element_text(angle = 90, hjust = 1),
+        plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(breaks = c("00:00:00", "06:00:00", "12:00:00", "18:00:00"))
+ggplotly(plotly_over_time)
+```
+
+
+### Barplot for delay duration by reason
+
+```{r, echo=FALSE}
+plotly_barplot <- 
+  nyc_bus %>%
+  filter(!is.na(reason),
+         !is.na(how_long_delayed)) %>%
+  group_by(reason) %>%
+  summarise(avg_time = mean(how_long_delayed)) %>%
+  ggplot(mapping = aes(x = reason, y = avg_time, fill = reason)) + 
+  geom_bar(stat= 'identity') +
+  ggtitle("Average delay duration by reason") +
+  labs(x = "Reason of delay", y = "Avergae delay duration") +
+  theme(text = element_text(size = 10),
+        axis.text.x = element_text(angle = 90, hjust = 1),
+        plot.title = element_text(hjust = 0.5))
+ggplotly(plotly_barplot)
+```
+
+### Boxplot for delay duration by company
+
+```{r, echo=FALSE}
+company_level <- 
+  nyc_bus %>%
+  filter(!is.na(how_long_delayed)) %>%
+  group_by(company_name) %>%
+  summarise(mean_duration = mean(how_long_delayed, na.rm = T)) %>%
+  arrange(desc(mean_duration)) %>%
+  pull(company_name)
+
+plotly_boxplot_com <-
+  nyc_bus %>%
+  mutate(company_name = forcats::fct_relevel(company_name, company_level)) %>%
+  filter(!is.na(how_long_delayed)) %>%
+  ggplot(aes(x = company_name, y = how_long_delayed)) + 
+  geom_boxplot(aes(fill = company_name), color = "blue", alpha = .5, outlier.size = 0.7) + 
+  stat_summary(fun.y = median, geom = "point", color = "blue") +
+  theme(axis.text.x = element_text(angle = 90),
+        legend.position = "none", 
+        text = element_text(size = 10),
+        plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Boxplot of delay duration for each company")
+ggplotly(plotly_boxplot_com)
+```
+
+
