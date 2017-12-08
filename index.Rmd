@@ -32,7 +32,7 @@ Find our data [here](Bus_Breakdown_and_Delays.csv).
 
 * Clean and prepare the data for further analysis by string processing and data type converting
 
-* Describe the data according to time, reasons, companies and other categorical variables we are interested in, visualized by barplots, scatter plots and tables
+* Describe and explore the data according to time, boros, reasons, companies and other categorical variables we are interested in, visualized by barplots, scatter plots and tables
 
 * Build up and validate a logistics regression model to predict the range of delay duration based on the predictors we select
 
@@ -48,17 +48,17 @@ Find our data [here](Bus_Breakdown_and_Delays.csv).
 
 * The occurence of school bus delays mainly centers around *7:00-8:00am* and *2:00-3:00pm*, which are the commonsensible rush hours. 
 
-* The boros which have the most frequent delays are *Brooklyn* and *Bronx*.The boros which have the least frequent delays are *Staten Island* and *Westchester*. This result indicates the traffic condition of these boros.
+* The boros which have the most frequent delays are *Brooklyn* and *Bronx*. The boros which have the least frequent delays are *Staten Island* and *Westchester*. This result indicates the traffic condition of these boros.
 
-* The most common reasons for breakdown are *mechanical problem*, *won’t start* and *flat tire*. The most common reason for delay is *heavy traffic*.
+* The most common reasons for breakdown are *mechanical problem*, *won’t start* and *flat tire*. The most common reasons for delay is *heavy traffic*.
 
-* *Accident* and *mechanical problem* tend to cause the longest delay duration while *delayed by school* and *heavy traffic* tend to have the shortest delay duration.
+* *Accident* and *mechanical problem* tend to cause the longest delay duration while *delayed by school* and *heavy traffic* tend to cause the shortest delay duration.
 
 * *“FORTUNA BUS COMPANY”* has the longest reaction time of three and a half hours, followed by *“R & C TRANSIT, INC.”*, *“SMART PICK”* and *“PENNY TRANSPORTATION”*.
 
-* The ratio of work faults(reaction time is negative or more than one day) is quite small generally. The company *“IC BUS INC.”* has the largest ratio of work faults, followed by *“GRANDPA`S BUS CO., INC.”* and *“ACME BUS CORP.”*.
+* The ratio of work faults(reaction time is negative because of falsely recorded or more than one day) is quite small generally. The company *“IC BUS INC.”* has the largest ratio of work faults, followed by *“GRANDPA`S BUS CO., INC.”* and *“ACME BUS CORP.”*.
 
-* The route service for Pre-K has a much higher odds of notifying and shorter average delay duration because of running late compared to School-Age. Route planning has a negative effect on the school bus arriving in time because of inflexibility.
+* Route planning has a negative effect on the school bus arriving in time because of inflexibility. The route service for Pre-K has a much higher odds of notifying and shorter average delay duration because of running late compared to School-Age. 
 
 * In our logistics regression model, we can predict the range of duration of delay based on the predictors we choose. Our model has prediction accuracy of apporximately 62%.
 
